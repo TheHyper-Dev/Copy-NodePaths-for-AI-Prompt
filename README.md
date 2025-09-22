@@ -5,18 +5,28 @@ Adds context (right mouse click) menu item to copy node tree structure to clipbo
 
 Example for the Node and its whole Family Tree:
 sentry-gun
+
 ├─ Stand_arma_0
+
 ├─ CollisionShape3D
+
 └─ MGMain
+
    ├─ MGMain_arma_0
+   
    ├─ Swivel_arma_0
+   
    └─ CollisionShape3D
 
 Example for the 1st gen children:
 
+
 sentry-gun
+
 ├─ Stand_arma_0
+
 ├─ CollisionShape3D
+
 └─ MGMain
 
 
