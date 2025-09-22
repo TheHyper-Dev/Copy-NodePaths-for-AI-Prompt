@@ -15,7 +15,7 @@ func _exit_tree():
 	# Clean up when the plugin is disabled
 	if context_menu_plugin:
 		remove_context_menu_plugin(context_menu_plugin)
-		context_menu_plugin.queue_free()
+		context_menu_plugin = null
 
 # SceneTreeContextMenu class that handles the context menu
 class SceneTreeContextMenu:
@@ -27,29 +27,12 @@ class SceneTreeContextMenu:
 	func _popup_menu(paths: PackedStringArray) -> void:
 		# Only show our custom menu items when right-clicking on scene tree nodes
 		if not paths.is_empty():
-			# Try to get the NodePath icon from the editor theme
-			var nodepath_icon = null
+			# Get the NodePath icon from the editor theme
+			var nodepath_icon = EditorInterface.get_editor_theme().get_icon("NodePath", "EditorIcons")
 			
-			# In Godot 4.5, access the theme through EditorInterface
-			if EditorInterface.has_method("get_editor_theme"):
-				var theme = EditorInterface.get_editor_theme()
-				if theme and theme.has_icon("NodePath", "EditorIcons"):
-					nodepath_icon = theme.get_icon("NodePath", "EditorIcons")
-			
-			# If we couldn't get the icon from the theme, try to load it directly
-			if not nodepath_icon:
-				var icon_path = "res://addons/copy_nodepaths_for_ai_prompt/icon_node_path.svg"
-				if ResourceLoader.exists(icon_path):
-					nodepath_icon = ResourceLoader.load(icon_path)
-			
-			# Add the context menu items with the icon if available
-			if nodepath_icon:
-				add_context_menu_item("Copy Node & Direct Children (All)", _on_copy_node_tree_all, nodepath_icon)
-				add_context_menu_item("Copy Node & Direct Children (No Internal)", _on_copy_node_tree_exclude_internal, nodepath_icon)
-			else:
-				# Fallback without icon if we couldn't load it
-				add_context_menu_item("Copy Node & Direct Children (All)", _on_copy_node_tree_all)
-				add_context_menu_item("Copy Node & Direct Children (No Internal)", _on_copy_node_tree_exclude_internal)
+			# Add the context menu items with the icon
+			add_context_menu_item("Copy the NodePaths of Node and its whole Family Tree", _on_copy_node_tree_all, nodepath_icon)
+			add_context_menu_item("Copy the NodePaths of Node and its Children (1st gen)", _on_copy_node_tree_exclude_internal, nodepath_icon)
 
 	func _on_copy_node_tree_all(paths: PackedStringArray) -> void:
 		if paths.is_empty():
