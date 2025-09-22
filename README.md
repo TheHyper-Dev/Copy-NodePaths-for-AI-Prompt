@@ -11,7 +11,7 @@ sentry-gun
 ├─ CollisionShape3D
 
 └─ MGMain
-
+   
    ├─ MGMain_arma_0
    
    ├─ Swivel_arma_0
