@@ -1,0 +1,121 @@
+# copy_nodepaths.gd
+# This is the main plugin file that extends EditorPlugin
+
+@tool
+extends EditorPlugin
+
+var context_menu_plugin
+
+func _enter_tree():
+	# Create and register the context menu plugin for the scene tree
+	context_menu_plugin = SceneTreeContextMenu.new()
+	add_context_menu_plugin(EditorContextMenuPlugin.ContextMenuSlot.CONTEXT_SLOT_SCENE_TREE, context_menu_plugin)
+
+func _exit_tree():
+	# Clean up when the plugin is disabled
+	if context_menu_plugin:
+		remove_context_menu_plugin(context_menu_plugin)
+		context_menu_plugin.queue_free()
+
+# SceneTreeContextMenu class that handles the context menu
+class SceneTreeContextMenu:
+	extends EditorContextMenuPlugin
+
+	func _init():
+		print("SceneTreeContextMenu plugin initialized")
+
+	func _popup_menu(paths: PackedStringArray) -> void:
+		# Only show our custom menu items when right-clicking on scene tree nodes
+		if not paths.is_empty():
+			# Try to get the NodePath icon from the editor theme
+			var nodepath_icon = null
+			
+			# In Godot 4.5, access the theme through EditorInterface
+			if EditorInterface.has_method("get_editor_theme"):
+				var theme = EditorInterface.get_editor_theme()
+				if theme and theme.has_icon("NodePath", "EditorIcons"):
+					nodepath_icon = theme.get_icon("NodePath", "EditorIcons")
+			
+			# If we couldn't get the icon from the theme, try to load it directly
+			if not nodepath_icon:
+				var icon_path = "res://addons/copy_nodepaths_for_ai_prompt/icon_node_path.svg"
+				if ResourceLoader.exists(icon_path):
+					nodepath_icon = ResourceLoader.load(icon_path)
+			
+			# Add the context menu items with the icon if available
+			if nodepath_icon:
+				add_context_menu_item("Copy Node & Direct Children (All)", _on_copy_node_tree_all, nodepath_icon)
+				add_context_menu_item("Copy Node & Direct Children (No Internal)", _on_copy_node_tree_exclude_internal, nodepath_icon)
+			else:
+				# Fallback without icon if we couldn't load it
+				add_context_menu_item("Copy Node & Direct Children (All)", _on_copy_node_tree_all)
+				add_context_menu_item("Copy Node & Direct Children (No Internal)", _on_copy_node_tree_exclude_internal)
+
+	func _on_copy_node_tree_all(paths: PackedStringArray) -> void:
+		if paths.is_empty():
+			return
+		
+		var selected_nodes = EditorInterface.get_selection().get_selected_nodes()
+		
+		if selected_nodes.is_empty():
+			push_error("No node selected")
+			return
+		
+		var root_node = selected_nodes[0]
+		
+		# Generate the tree structure including all direct children
+		var tree_text = _generate_direct_children_tree(root_node, false)
+		
+		# Copy to clipboard
+		DisplayServer.clipboard_set(tree_text.strip_edges())
+		
+		print("Copied node and direct children to clipboard")
+
+	func _on_copy_node_tree_exclude_internal(paths: PackedStringArray) -> void:
+		if paths.is_empty():
+			return
+		
+		var selected_nodes = EditorInterface.get_selection().get_selected_nodes()
+		
+		if selected_nodes.is_empty():
+			push_error("No node selected")
+			return
+		
+		var root_node = selected_nodes[0]
+		
+		# Generate the tree structure excluding internal direct children
+		var tree_text = _generate_direct_children_tree(root_node, true)
+		
+		# Copy to clipboard
+		DisplayServer.clipboard_set(tree_text.strip_edges())
+		
+		print("Copied node and direct children (excluding internal) to clipboard")
+
+	# Generate a tree structure with only direct children (not grandchildren)
+	# exclude_internal: if true, internal children will be skipped
+	func _generate_direct_children_tree(node: Node, exclude_internal: bool) -> String:
+		var result = ""
+		
+		# Add current node
+		result += node.name + "\n"
+		
+		# Get direct children, filtering out internal ones if requested
+		var children = []
+		for child in node.get_children():
+			if exclude_internal and child.is_internal():
+				continue
+			children.append(child)
+		
+		var child_count = children.size()
+		
+		# Add direct children with tree structure
+		for i in range(child_count):
+			var child = children[i]
+			var is_last = (i == child_count - 1)
+			
+			if is_last:
+				result += "└─ " + child.name + "\n"
+			else:
+				result += "├─ " + child.name + "\n"
+		
+		return result
